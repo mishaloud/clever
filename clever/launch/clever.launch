@@ -44,6 +44,7 @@
     <node name="simple_offboard" pkg="clever" type="simple_offboard" output="screen" clear_params="true">
         <param name="reference_frames/body" value="map"/>
         <param name="reference_frames/base_link" value="map"/>
+        <param name="nav_from_prev_wp_threshold" value="1.0"/>
     </node>
 
     <!-- main camera -->

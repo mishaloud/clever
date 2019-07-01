@@ -70,6 +70,7 @@ ros::Duration velocity_timeout;
 ros::Duration global_position_timeout;
 ros::Duration battery_timeout;
 float default_speed;
+float nav_from_prev_wp_threshold;
 bool auto_release;
 bool land_only_in_offboard;
 std::map<string, string> reference_frames;
@@ -100,6 +101,7 @@ float setpoint_yaw_rate;
 float nav_speed;
 bool busy = false;
 bool wait_armed = false;
+bool nav_from_prev_wp = false;
 
 enum setpoint_type_t {
 	NONE,
@@ -128,6 +130,15 @@ template<typename T, T& STORAGE>
 void handleMessage(const T& msg)
 {
 	STORAGE = msg;
+}
+
+void handleState(const mavros_msgs::State& s)
+{
+	state = s;
+	if (s.mode != "OFFBOARD") {
+		// flight intercepted
+		nav_from_prev_wp = false;
+	}
 }
 
 inline void publishBodyFrame()
@@ -492,6 +503,10 @@ bool serve(enum setpoint_type_t sp_type, float x, float y, float z, float vx, fl
 
 		busy = true;
 
+		if (sp_type != NAVIGATE && sp_type != NAVIGATE_GLOBAL) {
+			nav_from_prev_wp = false;
+		}
+
 		// Checks
 		checkState();
 
@@ -549,8 +564,17 @@ bool serve(enum setpoint_type_t sp_type, float x, float y, float z, float vx, fl
 
 		if (sp_type == NAVIGATE || sp_type == NAVIGATE_GLOBAL) {
 			// starting point
-			nav_start = local_position;
+			if (nav_from_prev_wp &&
+			    getDistance(local_position.pose.position, setpoint_position_transformed.pose.position) < nav_from_prev_wp_threshold) {
+				// navigate from previous waypoint
+				message = "Navigating from previous waypoint";
+				nav_start = setpoint_position_transformed;
+			} else {
+				nav_start = local_position;
+			}
+
 			nav_speed = speed;
+			nav_from_prev_wp = true;
 		}
 
 		// if (sp_type == NAVIGATE || sp_type == NAVIGATE_GLOBAL || sp_type == POSITION || sp_type == VELOCITY) {
@@ -722,6 +746,7 @@ int main(int argc, char **argv)
 	nh_priv.param("auto_release", auto_release, true);
 	nh_priv.param("land_only_in_offboard", land_only_in_offboard, true);
 	nh_priv.param("default_speed", default_speed, 0.5f);
+	nh_priv.param("nav_from_prev_wp_threshold", nav_from_prev_wp_threshold, 0.0f);
 	nh_priv.param<string>("body_frame", body.child_frame_id, "body");
 	nh_priv.getParam("reference_frames", reference_frames);
 
