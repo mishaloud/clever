@@ -76,6 +76,16 @@ jobs:
         verbose: true
         on:
           branch: master
+    - stage: Build
+      name: Lint
+      language: node_js
+      node_js:
+        - "10"
+      before_script:
+        - npm install editorconfig-checker -g
+        - editorconfig-checker --version
+      script:
+        - editorconfig-checker -e "roslib.js|ros3d.js|eventemitter2.js|draw.cpp|BinUtils.swift|\.idea|apps/android/app|Assets.xcassets|test_parser_pass.txt"
     - stage: Annotate
       name: Auto-generate changelog
       language: python

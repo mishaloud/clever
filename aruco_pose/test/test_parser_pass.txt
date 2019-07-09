@@ -8,7 +8,7 @@
 # Empty line test:
 
 # All-whitespace line test:
-		    
+
 # 2. Default coordinates test
 # Fully filled marker description, tab-delimited:
 1	0.33	0	0	0	0	0	0
